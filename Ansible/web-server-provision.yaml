@@ -1,0 +1,72 @@
+- hosts: web-server
+  become: true 
+  #Update packages
+  tasks:
+    - name: Update all packages to their latest version
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+
+    - name: install dependencies
+      apt:
+        pkg:
+          - ca-certificates
+          - software-properties-common
+          - apt-transport-https
+          - curl
+          - gnupg
+          - lsb-release
+          - htop
+          - git
+          - python3-pip #for docker
+          - python3-setuptools 
+
+      #Install Docker
+    - name: Install apt key
+      ansible.builtin.apt_key:
+        url: "https://download.docker.com/linux/ubuntu/gpg"
+        state: present
+        keyring: /etc/apt/trusted.gpg.d/docker.gpg
+
+    - name: Install docker repo
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+
+    - name: install docker
+      apt:
+        update_cache: yes
+        pkg:
+          - docker-ce
+
+# install docker-compose 
+    - name: install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.6.0/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '775'
+
+    - name: adding existing user "{{ ansible_user }}" to group docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+#fix error
+    - name: install 'Docker SDK for Python'
+      pip:
+        name:
+          - docker
+          - docker-compose     
+#REpository
+    - name: Clone a github repository
+      git:
+        repo: https://github.com/MojitoTea/Os_Metrics_Server
+        dest: /home/Os-metric
+        clone: yes
+        update: yes          
+#UP app
+    - name: Run `docker-compose up`
+      community.docker.docker_compose:
+        state: present
+        project_src: "/home/Os-metric"

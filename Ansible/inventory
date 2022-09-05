@@ -1,0 +1,2 @@
+[all]
+web-server ansible_host=31.74.154.36 ansible_user=ubuntu
